@@ -1,0 +1,20 @@
+# the only folders we source in Dockerfile from are:
+#
+#   docker/
+#   build/distributions/
+#
+# don't send folders below to docker's build context
+# speeds up incremental (cached) build times ~4x on my machine
+
+.git
+.gradle
+.idea
+src
+gradle
+build/libs
+build/classes
+build/resources
+build/tmp
+build/test-results
+build/reports
+build/scripts

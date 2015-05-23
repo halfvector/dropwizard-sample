@@ -1,0 +1,10 @@
+build
+*.log
+*.iml
+.gradle
+.idea
+local.properties
+tmp
+gradlew.bat
+gradlew
+gradle

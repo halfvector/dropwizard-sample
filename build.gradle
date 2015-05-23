@@ -1,0 +1,138 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.1'
+        classpath 'org.flywaydb:flyway-gradle-plugin:3.1'
+        classpath 'org.yaml:snakeyaml:1.14'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'application'
+apply plugin: 'idea'
+apply plugin: 'flyway'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+// UTF-8 should be standard by now. So use it!
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+applicationName = 'dropwizard-test'
+mainClassName = 'ApiService'
+group = 'com.hotcashew'
+version = '0.0.1'
+
+distTar {
+    baseName = 'dropwizard-test'
+    archiveName = 'dropwizard-test.tar'
+}
+
+// Set our project variables
+project.ext {
+    dropwizardVersion = '0.8.0-rc5'
+}
+
+// attempt to fix slf4->log4j causing circular redirection (when running tests in intellij)
+configurations.all {
+    exclude module: 'slf4j-log4j12'
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.name == 'log4j') {
+            details.useTarget "org.slf4j:log4j-over-slf4j:1.7.5"
+        }
+    }
+
+    // fix for beta mockito breaking some hamcrest matching
+    exclude module: 'mockito-all'
+}
+
+repositories {
+    maven { url "http://repository.jboss.org/nexus/content/groups/public/" }
+    jcenter()
+    mavenLocal()
+}
+
+dependencies {
+    compile 'io.dropwizard:dropwizard-core:' + dropwizardVersion
+    compile 'io.dropwizard:dropwizard-hibernate:' + dropwizardVersion
+    compile 'io.dropwizard.modules:dropwizard-flyway:0.7.0-1'
+    compile 'io.dropwizard:dropwizard-auth:' + dropwizardVersion
+    compile 'io.dropwizard:dropwizard-forms:' + dropwizardVersion
+    compile 'io.dropwizard:dropwizard-jdbi:' + dropwizardVersion
+    compile 'io.dropwizard:dropwizard-migrations:' + dropwizardVersion
+    compile 'io.dropwizard:dropwizard-views:' + dropwizardVersion
+    compile 'io.dropwizard:dropwizard-views-freemarker:' + dropwizardVersion
+    compile 'io.dropwizard:dropwizard-auth:' + dropwizardVersion
+
+    compile('com.dcsquare:dropwizard-papertrail:1.1') {
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    }
+
+    compile 'com.jamierf.dropwizard:dropwizard-logging-loggly:+'
+    compile 'com.xeiam:dropwizard-sundial:0.7.1.1'
+
+    // Metrics
+    compile 'io.dropwizard.metrics:metrics-core:3.1.0'
+    compile 'com.librato.metrics:metrics-librato:4.0.1.7'
+
+    compile 'com.h2database:h2:1.3.168'
+    compile('com.wordnik:swagger-jersey2-jaxrs_2.10:1.3.12') {
+        exclude group: 'javax.ws.rs'
+    }
+    compile 'io.federecio:dropwizard-swagger:0.5.+'
+    compile 'org.antlr:stringtemplate:3.2.1'
+
+    // SQL + ADO
+    compile 'com.jolbox:bonecp:0.8.1-SNAPSHOT'
+    compile 'com.zaxxer:HikariCP:2.3.2'
+    compile 'com.hubspot.rosetta:RosettaJdbi:3.0'
+    // NOTE: 5.1.35 will add noTimezoneConversionForDateType && cacheDefaultTimezone
+    // which may fix issues with Date<->Timestamp timezone conversions
+    compile 'mysql:mysql-connector-java:5.1.34'
+
+    // notifications
+    compile 'com.pubnub:pubnub:3.5.6'
+
+    compile 'com.amazonaws:aws-java-sdk:1.2.1'
+
+    // log shippers (logentries.com, papertrailapp.com, rollbar.com)
+    compile 'com.logentries:logentries-appender:+'
+    compile 'com.voodoodyne.rollbar-logback:rollbar-logback:+'
+
+    // testing
+    testCompile 'org.hamcrest:hamcrest-all:1.3'
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.mockito:mockito-all:+'
+    testCompile 'com.squareup.retrofit:retrofit:1.9.0'
+    testCompile 'io.dropwizard:dropwizard-testing:' + dropwizardVersion
+}
+
+// Configure the run task to start the Dropwizard service
+// support argument passing from gradle to java
+// eg: ./gradlew run -Pargs="-p 7000"
+run {
+    if (project.hasProperty('args')) {
+        args project.args.split('\\s')
+    } else {
+        args 'server', 'src/dist/config/localhost.yml'
+    }
+}
+
+task runClean(dependsOn: ['clean', 'run'])
+run.mustRunAfter clean
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.2'
+}
+
+test {
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        exceptionFormat "full"
+        stackTraceFilters "truncate", "groovy"
+    }
+}

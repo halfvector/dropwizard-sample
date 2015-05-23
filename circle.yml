@@ -1,0 +1,36 @@
+dependencies:
+  pre:
+    - pip install awscli
+    - ./gradlew compileJava compileTestJava # install gradle dependencies
+  override:
+    - mysql -u ubuntu -e 'create database api_ci;'
+
+test:
+  pre:
+    - ./gradlew inCI flywayMigrate
+  override:
+    - ./gradlew --no-color check
+  post:
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
+    - cp -a build/test-results/*.xml $CIRCLE_TEST_REPORTS/junit/
+
+machine:
+  services:
+    - docker
+  java:
+    version:
+      oraclejdk8
+  python:
+    version: 2.7.3
+
+general:
+  artifacts:
+    - build/reports/tests
+
+# can deploy to different servers based on origin branch
+deployment:
+  prod:
+    branch: develop
+    commands:
+      - ./build_docker.sh
+      - ./opsworks_deploy_dev.sh # uses aws credentials from circleci project settings

@@ -1,0 +1,25 @@
+environment: 'localhost'
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8000
+  adminConnectors:
+    - type: http
+      port: 8001
+
+  requestLog:
+    timeZone: EST
+    appenders:
+      - type: console
+        target: stdout
+        logFormat: "[%.-1level] %-20.20thread %25c{0}::%-25method{20} %message %rEx%n"
+
+logging:
+  level: DEBUG
+
+  appenders:
+    - type: console
+      target: stdout
+      logFormat: "[%level] [%thread] %c{0} > %message %rEx%n"
+      threshold: DEBUG
